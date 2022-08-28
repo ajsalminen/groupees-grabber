@@ -93,7 +93,12 @@ class product(object):
 		self._con = con
 		self._name = product['bundle_name']
 		self._id = product['id']
-		self._user_id = product['user_id']
+		# If a bundle was received as a gift, the user_id will be wrong
+		# Need to use the gift_taker_id as that is the user_id in other bundles
+		if product['gift_taker_id']:
+			self._user_id = product['gift_taker_id']
+		else:
+			self._user_id = product['user_id']
 
 	def reveal(self):
 		self._con._opener.addheaders = [('accept', '*/*')]
