@@ -19,6 +19,8 @@ from codecs import encode,decode
 from collections import Counter
 import urllib.error
 import CookieCon
+from getpass import getpass
+
 URL_LOGIN = "https://groupees.com/login"
 URL_LOGIN_AUTH = "https://groupees.com/auth/email_password"
 URL_PRODUCT_LIST = Template("https://groupees.com/users/${user_id}/more_entries?page=${page}&kind=bundles")
@@ -73,7 +75,10 @@ class product(object):
 			print(URL_BUNDLE_DETAILS.substitute(bundle_id = self._id, user_id = self._user_id))
 			self._con._opener.addheaders = [('accept', '*/*')]
 			request = self._con.request(URL_BUNDLE_DETAILS.substitute(bundle_id = self._id, user_id = self._user_id))
+			# Grab all games and music
 			self._link_urls = re.findall(r'https://storage.groupees.com/(?:albums|games)/[0-9]+/(?:flac/|mp3/)?download(?:/[0-9]+)?', request)
+			# Grab all other things
+			self.link_urls.extend(re.findall(r'https://storage.groupees.com/other_products/[0-9]+?/download\?file_id=[0-9]+', request))
 		if self._link_urls is None:
 			raise NoLink
 		else:
@@ -88,7 +93,12 @@ class product(object):
 		self._con = con
 		self._name = product['bundle_name']
 		self._id = product['id']
-		self._user_id = product['user_id']
+		# If a bundle was received as a gift, the user_id will be wrong
+		# Need to use the gift_taker_id as that is the user_id in other bundles
+		if product['gift_taker_id']:
+			self._user_id = product['gift_taker_id']
+		else:
+			self._user_id = product['user_id']
 
 	def reveal(self):
 		self._con._opener.addheaders = [('accept', '*/*')]
@@ -215,7 +225,7 @@ if __name__ == "__main__":
 	import groupees
 	print("Start")
 	un = input("Please, type your email address\n")
-	pw = input("Please, type your password\n")
+	pw = getpass("Please, type your password\n")
 	print("Now trying to accumulate all your products on groupees")
 	try:
 		p = groupees.collect_products(un, pw)
